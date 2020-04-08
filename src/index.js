@@ -33,7 +33,7 @@ const FSM = StateMachine.factory({
         )
           return false;
         if (details) this.character = { ...this.character, ...details };
-        if (this.character.race || this.character.age) return States.DamageType;
+        if (this.character.race && this.character.age) return States.DamageType;
         return false;
       },
     },

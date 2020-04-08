@@ -1,0 +1,9 @@
+.circleci/
+charts/
+
+.*
+*.md
+package.json
+package-lock.json
+LICENSE
+Dockerfile

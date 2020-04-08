@@ -1,0 +1,39 @@
+{
+  "extends": [
+    "@sibipro/eslint-config",
+    "@sibipro/eslint-config-jest"
+  ],
+  "rules": {
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": []
+      }
+    ],
+    "require-atomic-updates": "off",
+    "no-underscore-dangle": "off",
+    "consistent-return": "warn",
+    "no-param-reassign": "warn",
+    "prefer-promise-reject-errors": "warn",
+    "no-await-in-loop": "warn",
+    "jest/require-top-level-describe": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "*.spec.{js,ts}"
+      ],
+      "rules": {
+        "global-require": "off"
+      }
+    },
+    {
+      "files": [
+        "src/__mocks__/**/*.{js,ts}"
+      ],
+      "env": {
+        "jest": true
+      }
+    }
+  ]
+}

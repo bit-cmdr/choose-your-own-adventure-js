@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const StateMachine = require('javascript-state-machine');
 
 const States = {
@@ -23,7 +24,7 @@ const FSM = StateMachine.factory({
   init: States.AccountCreated,
   transitions: [
     {
-      name: 'details',
+      name: 'next',
       from: States.AccountCreated,
       to() {
         if (!this.character.name) return false;
@@ -31,7 +32,7 @@ const FSM = StateMachine.factory({
       },
     },
     {
-      name: 'moreDetails',
+      name: 'next',
       from: States.CharacterDetails,
       to() {
         if (!this.character.race || !this.character.age) return false;
@@ -39,7 +40,7 @@ const FSM = StateMachine.factory({
       },
     },
     {
-      name: 'damageClass',
+      name: 'next',
       from: States.DamageType,
       to() {
         if (!this.character.class) return false;
@@ -54,7 +55,7 @@ const FSM = StateMachine.factory({
       },
     },
     {
-      name: 'spells',
+      name: 'next',
       from: States.SpellDetails,
       to() {
         if (
@@ -72,8 +73,8 @@ const FSM = StateMachine.factory({
       },
     },
     {
-      name: 'weapons',
-      from: [States.WeaponDetails, States.SpellDetails],
+      name: 'next',
+      from: States.WeaponDetails,
       to() {
         if (
           !Array.isArray(this.character.weapons) ||
@@ -86,8 +87,8 @@ const FSM = StateMachine.factory({
       },
     },
     {
-      name: 'finish',
-      from: [States.StartingFaction],
+      name: 'next',
+      from: States.StartingFaction,
       to() {
         if (!this.character.faction) return false;
         return States.FinalState;
@@ -105,8 +106,11 @@ const FSM = StateMachine.factory({
     return { character };
   },
   methods: {
+    onTransition(lifecycle) {
+      console.log(`transitioning from ${lifecycle.from} to ${lifecycle.to}`);
+    },
     describe() {
-      console.log(`Your character is\n${JSON.stringify(this.character)}`);
+      console.log('Your character is', this.character);
     },
     setName(name) {
       this.character.name = name;

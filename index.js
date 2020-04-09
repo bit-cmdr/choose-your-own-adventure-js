@@ -4,45 +4,39 @@ const { FSM, States } = require('./src');
 
 async function begin() {
   const name = scanf.question('Character Name > ');
-  console.log('current state', FSM.state);
   FSM.setName(name);
-  FSM.details();
+  FSM.next();
 
   const age = scanf.question('Character Age > ');
   const race = scanf.question(
     'Character Race (Human, Elf, Orc, Half-Elf, Half-Orc, Tiefling, Drow, Etc...) > ',
   );
   FSM.setDetails(age, race);
-  FSM.moreDetails();
+  FSM.next();
 
-  console.log('current state', FSM.state);
   const cls = scanf.question('Character Damage Type (melee, magic, mixed) > ');
   await FSM.setClass(cls);
-  FSM.damageClass();
+  FSM.next();
 
-  console.log('current state', FSM.state);
   if (FSM.state === States.SpellDetails) {
     const spellName = scanf.question('Spell Name > ');
     const spellDmg = scanf.question('Spell Damage > +');
     FSM.setSpells([{ name: spellName, damage: spellDmg }]);
-    FSM.spells();
+    FSM.next();
   }
 
-  console.log('current state', FSM.state);
   if (FSM.state === States.WeaponDetails) {
     const weaponName = scanf.question('Weapon Name > ');
     const weaponDamage = scanf.question('Weapon Damage > +');
     FSM.setWeapons([{ name: weaponName, damage: weaponDamage }]);
-    FSM.weapons();
+    FSM.next();
   }
 
-  console.log('current state', FSM.state);
   const faction = scanf.question('Character Faction > ');
   FSM.setFaction(faction);
-  FSM.finish();
+  FSM.next();
 
-  console.log('current state', FSM.state);
-  if (FSM.state === States.FinalState) console.log('describe', FSM.describe());
+  if (FSM.is(States.FinalState)) console.log('describe', FSM.describe());
 }
 
 begin()

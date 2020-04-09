@@ -114,6 +114,9 @@ const FSM = StateMachine.factory({
       console.log('Your character is', this.character);
       console.log('journey', this.history);
     },
+    json() {
+      return this.character;
+    },
     setName(name) {
       this.character.name = name;
     },
@@ -137,4 +140,4 @@ const FSM = StateMachine.factory({
   plugins: [new StateMachineHistory()],
 });
 
-module.exports = { FSM: new FSM({}), States };
+module.exports = { FSM, States };

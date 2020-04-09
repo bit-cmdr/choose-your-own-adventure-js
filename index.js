@@ -2,46 +2,68 @@
 const scanf = require('readline-sync');
 const { FSM, States } = require('./src');
 
-async function begin() {
+async function characterSheet() {
+  const fsm = new FSM({});
   const name = scanf.question('Character Name > ');
-  FSM.setName(name);
-  FSM.next();
+  fsm.setName(name);
+  fsm.next();
 
   const age = scanf.question('Character Age > ');
   const race = scanf.question(
     'Character Race (Human, Elf, Orc, Half-Elf, Half-Orc, Tiefling, Drow, Etc...) > ',
   );
-  FSM.setDetails(age, race);
-  FSM.next();
+  fsm.setDetails(age, race);
+  fsm.next();
 
   const cls = scanf.question('Character Damage Type (melee, magic, mixed) > ');
-  await FSM.setClass(cls);
-  FSM.next();
+  await fsm.setClass(cls);
+  fsm.next();
 
-  if (FSM.state === States.SpellDetails) {
+  if (fsm.state === States.SpellDetails) {
     const spellName = scanf.question('Spell Name > ');
     const spellDmg = scanf.question('Spell Damage > +');
-    FSM.setSpells([{ name: spellName, damage: spellDmg }]);
-    FSM.next();
+    fsm.setSpells([{ name: spellName, damage: spellDmg }]);
+    fsm.next();
   }
 
-  if (FSM.state === States.WeaponDetails) {
+  if (fsm.state === States.WeaponDetails) {
     const weaponName = scanf.question('Weapon Name > ');
     const weaponDamage = scanf.question('Weapon Damage > +');
-    FSM.setWeapons([{ name: weaponName, damage: weaponDamage }]);
-    FSM.next();
+    fsm.setWeapons([{ name: weaponName, damage: weaponDamage }]);
+    fsm.next();
   }
 
   const faction = scanf.question('Character Faction > ');
-  FSM.setFaction(faction);
-  FSM.next();
+  fsm.setFaction(faction);
+  fsm.next();
 
-  if (FSM.is(States.FinalState)) console.log('describe', FSM.describe());
+  if (fsm.is(States.FinalState)) return fsm;
+  return null;
+}
+
+async function begin() {
+  const characters = [];
+  const histories = [];
+  let create = 'y';
+  while (create === 'y') {
+    try {
+      const c = await characterSheet();
+      characters.push((c || {}).json() || null);
+      histories.push((c || {}).history || null);
+    } catch (e) {
+      console.log('error', e);
+      process.exit(1);
+    }
+    create = scanf.question('Create another [y|N] ? ');
+  }
+
+  characters.forEach((c) => console.log(c));
+  histories.forEach((h) => console.log(h));
 }
 
 begin()
   .then(() => {
-    console.log('success');
+    console.log('fin');
     process.exit(0);
   })
   .catch((e) => {

@@ -17,7 +17,10 @@ async function damageClass(dmgType) {
   if (dmgType.toLowerCase() === 'magic') cls = 'ranged';
   if (dmgType.toLowerCase() === 'mixed') cls = 'ranged_melee';
   return new Promise((resolve) => {
-    setTimeout(resolve(cls), 2000);
+    function wait() {
+      return resolve(cls);
+    }
+    setTimeout(wait, 6000);
   });
 }
 

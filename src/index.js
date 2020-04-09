@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const StateMachine = require('javascript-state-machine');
+const StateMachineHistory = require('javascript-state-machine/lib/history');
 
 const States = {
   AccountCreated: 'AccountCreated',
@@ -111,6 +112,7 @@ const FSM = StateMachine.factory({
     },
     describe() {
       console.log('Your character is', this.character);
+      console.log('journey', this.history);
     },
     setName(name) {
       this.character.name = name;
@@ -132,6 +134,7 @@ const FSM = StateMachine.factory({
       this.character.faction = faction;
     },
   },
+  plugins: [new StateMachineHistory()],
 });
 
 module.exports = { FSM: new FSM({}), States };

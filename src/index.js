@@ -7,46 +7,90 @@ const States = {
   SpellDetails: 'SpellDetails',
   WeaponDetails: 'WeaponDetails',
   StartingFaction: 'StartingFaction',
+  FinalState: 'Finished',
 };
+
+async function damageClass(dmgType) {
+  let cls = 'melee';
+  if (dmgType.toLowerCase() === 'magic') cls = 'ranged';
+  if (dmgType.toLowerCase() === 'mixed') cls = 'ranged_melee';
+  return new Promise((resolve) => {
+    setTimeout(resolve(cls), 2000);
+  });
+}
 
 const FSM = StateMachine.factory({
   init: States.AccountCreated,
   transitions: [
     {
-      name: 'step',
+      name: 'details',
       from: States.AccountCreated,
-      to(details) {
-        if (!this.character.name && !details && !details.name) return false;
-        if (details) this.character = { ...this.character, ...details };
-        if (this.character.name) return States.CharacterDetails;
-        return false;
+      to() {
+        if (!this.character.name) return false;
+        return States.CharacterDetails;
       },
     },
     {
-      name: 'step',
+      name: 'moreDetails',
       from: States.CharacterDetails,
-      to(details) {
-        if (
-          !this.character.age &&
-          !this.character.race &&
-          (!details || !details.age || !details.race)
-        )
-          return false;
-        if (details) this.character = { ...this.character, ...details };
-        if (this.character.race && this.character.age) return States.DamageType;
-        return false;
+      to() {
+        if (!this.character.race || !this.character.age) return false;
+        return States.DamageType;
       },
     },
     {
-      name: 'step',
+      name: 'damageClass',
       from: States.DamageType,
-      to(s) {
-        if (s === 'magic') {
-          this.character.class = 'ranged';
-          return States.SpellDetails;
+      to() {
+        if (!this.character.class) return false;
+
+        switch (this.character.class) {
+          case 'ranged':
+          case 'ranged_melee':
+            return States.SpellDetails;
+          default:
+            return States.WeaponDetails;
         }
-        this.character.class = 'melee';
-        return States.WeaponDetails;
+      },
+    },
+    {
+      name: 'spells',
+      from: States.SpellDetails,
+      to() {
+        if (
+          !Array.isArray(this.character.spells) ||
+          !this.character.spells.length
+        ) {
+          return false;
+        }
+
+        if (this.character.class === 'ranged_melee') {
+          return States.WeaponDetails;
+        }
+
+        return States.StartingFaction;
+      },
+    },
+    {
+      name: 'weapons',
+      from: [States.WeaponDetails, States.SpellDetails],
+      to() {
+        if (
+          !Array.isArray(this.character.weapons) ||
+          !this.character.weapons.length
+        ) {
+          return false;
+        }
+
+        return States.StartingFaction;
+      },
+    },
+    {
+      name: 'finish',
+      from: [States.StartingFaction],
+      to() {
+        if (!this.character.faction) return false;
+        return States.FinalState;
       },
     },
     {
@@ -64,12 +108,26 @@ const FSM = StateMachine.factory({
     describe() {
       console.log(`Your character is\n${JSON.stringify(this.character)}`);
     },
-    onStep(lifecycle) {
-      console.log('transition', lifecycle.transition);
-      console.log('from', lifecycle.from);
-      console.log('to', lifecycle.to);
+    setName(name) {
+      this.character.name = name;
+    },
+    setDetails(age, race) {
+      this.character.age = age;
+      this.character.race = race;
+    },
+    async setClass(damageType) {
+      this.character.class = await damageClass(damageType);
+    },
+    setSpells(spells) {
+      this.character.spells = spells;
+    },
+    setWeapons(weapons) {
+      this.character.weapons = weapons;
+    },
+    setFaction(faction) {
+      this.character.faction = faction;
     },
   },
 });
 
-module.exports = { FSM: new FSM({}) };
+module.exports = { FSM: new FSM({}), States };

@@ -47,6 +47,7 @@ async function begin() {
   let create = 'y';
   while (create === 'y') {
     try {
+      // eslint-disable-next-line no-await-in-loop
       const c = await characterSheet();
       characters.push((c || {}).json() || null);
       histories.push((c || {}).history || null);

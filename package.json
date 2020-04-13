@@ -16,7 +16,7 @@
     "prettier": "^2.0.4"
   },
   "dependencies": {
-    "javascript-state-machine": "^3.1.0",
-    "readline-sync": "^1.4.10"
+    "readline-sync": "^1.4.10",
+    "xstate": "^4.8.0"
   }
 }

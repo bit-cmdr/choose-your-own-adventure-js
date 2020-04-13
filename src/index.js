@@ -1,146 +1,150 @@
 /* eslint-disable no-console */
-const StateMachine = require('javascript-state-machine');
-const StateMachineHistory = require('javascript-state-machine/lib/history');
-
-const States = {
-  AccountCreated: 'AccountCreated',
-  CharacterDetails: 'CharacterDetails',
-  DamageType: 'DamageType',
-  SpellDetails: 'SpellDetails',
-  WeaponDetails: 'WeaponDetails',
-  StartingFaction: 'StartingFaction',
-  FinalState: 'Finished',
-};
+const { Machine, assign, interpret } = require('xstate');
 
 async function damageClass(dmgType) {
   let cls = 'melee';
   if (dmgType.toLowerCase() === 'magic') cls = 'ranged';
   if (dmgType.toLowerCase() === 'mixed') cls = 'ranged_melee';
   return new Promise((resolve) => {
-    function wait() {
-      return resolve(cls);
-    }
-    setTimeout(wait, 6000);
+    setTimeout(() => resolve(cls), 6000);
   });
 }
 
-const FSM = StateMachine.factory({
-  init: States.AccountCreated,
-  transitions: [
-    {
-      name: 'next',
-      from: States.AccountCreated,
-      to() {
-        if (!this.character.name) return false;
-        return States.CharacterDetails;
+const characterMachine = Machine(
+  {
+    id: 'characterSheet',
+    initial: 'accountCreated',
+    context: {},
+    states: {
+      accountCreated: {
+        on: {
+          NEXT: {
+            target: 'characterDetails',
+            cond: 'hasName',
+            actions: 'setName',
+          },
+        },
       },
-    },
-    {
-      name: 'next',
-      from: States.CharacterDetails,
-      to() {
-        if (!this.character.race || !this.character.age) return false;
-        return States.DamageType;
+      characterDetails: {
+        on: {
+          NEXT: {
+            target: 'chooseDamageType',
+            cond: 'hasDetails',
+            actions: 'setAgeRace',
+          },
+        },
       },
-    },
-    {
-      name: 'next',
-      from: States.DamageType,
-      to() {
-        if (!this.character.class) return false;
-
-        switch (this.character.class) {
-          case 'ranged':
-          case 'ranged_melee':
-            return States.SpellDetails;
-          default:
-            return States.WeaponDetails;
-        }
+      chooseDamageType: {
+        on: { NEXT: { target: 'damageType', cond: 'hasDamage' } },
       },
-    },
-    {
-      name: 'next',
-      from: States.SpellDetails,
-      to() {
-        if (
-          !Array.isArray(this.character.spells) ||
-          !this.character.spells.length
-        ) {
-          return false;
-        }
-
-        if (this.character.class === 'ranged_melee') {
-          return States.WeaponDetails;
-        }
-
-        return States.StartingFaction;
+      damageType: {
+        invoke: {
+          id: 'fetchDamageType',
+          src: 'damageClass',
+          onDone: { target: 'chosenDamageType', actions: 'setDamageClass' },
+          onError: 'chooseDamageType',
+        },
       },
-    },
-    {
-      name: 'next',
-      from: States.WeaponDetails,
-      to() {
-        if (
-          !Array.isArray(this.character.weapons) ||
-          !this.character.weapons.length
-        ) {
-          return false;
-        }
-
-        return States.StartingFaction;
+      chosenDamageType: {
+        on: {
+          '': [
+            { target: 'spellDetails', cond: 'isRanged' },
+            { target: 'weaponDetails', cond: 'isMelee' },
+          ],
+        },
       },
-    },
-    {
-      name: 'next',
-      from: States.StartingFaction,
-      to() {
-        if (!this.character.faction) return false;
-        return States.FinalState;
+      spellDetails: {
+        on: {
+          NEXT: [
+            {
+              target: 'weaponDetails',
+              cond: 'isMixedHasSpells',
+              actions: 'setSpells',
+            },
+            {
+              target: 'startingFaction',
+              cond: 'hasSpells',
+              actions: 'setSpells',
+            },
+          ],
+        },
       },
-    },
-    {
-      name: 'goto',
-      from: '*',
-      to(s) {
-        return s;
+      weaponDetails: {
+        on: {
+          NEXT: {
+            target: 'startingFaction',
+            cond: 'hasWeapons',
+            actions: 'setWeapons',
+          },
+        },
       },
-    },
-  ],
-  data(character) {
-    return { character };
-  },
-  methods: {
-    onTransition(lifecycle) {
-      console.log(`transitioning from ${lifecycle.from} to ${lifecycle.to}`);
-    },
-    describe() {
-      console.log('Your character is', this.character);
-      console.log('journey', this.history);
-    },
-    json() {
-      return this.character;
-    },
-    setName(name) {
-      this.character.name = name;
-    },
-    setDetails(age, race) {
-      this.character.age = age;
-      this.character.race = race;
-    },
-    async setClass(damageType) {
-      this.character.class = await damageClass(damageType);
-    },
-    setSpells(spells) {
-      this.character.spells = spells;
-    },
-    setWeapons(weapons) {
-      this.character.weapons = weapons;
-    },
-    setFaction(faction) {
-      this.character.faction = faction;
+      startingFaction: {
+        on: {
+          NEXT: {
+            target: 'created',
+            cond: 'hasFaction',
+            actions: 'setFaction',
+          },
+        },
+      },
+      created: { type: 'final' },
     },
   },
-  plugins: [new StateMachineHistory()],
-});
+  {
+    guards: {
+      hasName: (_, event) => event.name,
+      hasDetails: (_, event) => event.age && event.race,
+      hasDamage: (_, event) => event.dmgType,
+      isRanged: (ctx) =>
+        ctx.damageClass === 'ranged' || ctx.damageClass === 'ranged_melee',
+      isMelee: (ctx) => ctx.damageClass === 'melee',
+      isMixedHasSpells: (ctx, event) =>
+        Array.isArray(event.spells) &&
+        event.spells.length &&
+        ctx.damageClass === 'ranged_melee',
+      hasSpells: (_, event) =>
+        Array.isArray(event.spells) && event.spells.length,
+      hasWeapons: (_, event) =>
+        Array.isArray(event.weapons) && event.weapons.length,
+      hasFaction: (_, event) => event && event.faction,
+    },
+    actions: {
+      setName: assign((ctx, event) => ({ ...ctx, name: event.name })),
+      setAgeRace: assign((ctx, event) => ({
+        ...ctx,
+        age: event.age,
+        race: event.race,
+      })),
+      setDamageClass: assign((ctx, event) => ({
+        ...ctx,
+        damageClass: event.data,
+      })),
+      setSpells: assign((ctx, event) => ({ ...ctx, spells: event.spells })),
+      setWeapons: assign((ctx, event) => ({ ...ctx, weapons: event.weapons })),
+      setFaction: assign((ctx, event) => ({ ...ctx, faction: event.faction })),
+    },
+    services: {
+      damageClass: (_, event) => damageClass(event.dmgType),
+    },
+  },
+);
 
-module.exports = { FSM, States };
+function CharacterService(options) {
+  const machine =
+    options && options.context
+      ? characterMachine.withContext(options.context)
+      : characterMachine;
+  const svc = interpret(machine).onTransition((state) => {
+    if (state.history) {
+      console.log(
+        `transitioned from previous state ${state.history.value} to current state ${state.value}`,
+      );
+    } else {
+      console.log(`starting machine at current state ${state.value}`);
+    }
+  });
+
+  return options && options.state ? svc.start(options.state) : svc.start();
+}
+
+module.exports = { CharacterService };

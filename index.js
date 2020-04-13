@@ -1,44 +1,48 @@
 /* eslint-disable no-console */
 const scanf = require('readline-sync');
-const { FSM, States } = require('./src');
+const { CharacterService } = require('./src');
 
 async function characterSheet() {
-  const fsm = new FSM({});
+  const characterService = CharacterService((_, __) =>
+    console.log('done', _, __),
+  );
   const name = scanf.question('Character Name > ');
-  fsm.setName(name);
-  fsm.next();
+  characterService.send('NEXT', { name });
 
   const age = scanf.question('Character Age > ');
   const race = scanf.question(
     'Character Race (Human, Elf, Orc, Half-Elf, Half-Orc, Tiefling, Drow, Etc...) > ',
   );
-  fsm.setDetails(age, race);
-  fsm.next();
+  characterService.send('NEXT', { age, race });
 
-  const cls = scanf.question('Character Damage Type (melee, magic, mixed) > ');
-  await fsm.setClass(cls);
-  fsm.next();
+  const dmgType = scanf.question(
+    'Character Damage Type (melee, magic, mixed) > ',
+  );
+  const res = characterService.send('NEXT', { dmgType });
+  const dt = await new Promise((resolve) =>
+    res.children.fetchDamageType.subscribe((v) => resolve(v)),
+  );
 
-  if (fsm.state === States.SpellDetails) {
+  if (dt === 'ranged' || dt === 'ranged_melee') {
     const spellName = scanf.question('Spell Name > ');
     const spellDmg = scanf.question('Spell Damage > +');
-    fsm.setSpells([{ name: spellName, damage: spellDmg }]);
-    fsm.next();
+    characterService.send('NEXT', {
+      spells: [{ name: spellName, damage: spellDmg }],
+    });
   }
 
-  if (fsm.state === States.WeaponDetails) {
+  if (dt === 'melee' || dt === 'ranged_melee') {
     const weaponName = scanf.question('Weapon Name > ');
     const weaponDamage = scanf.question('Weapon Damage > +');
-    fsm.setWeapons([{ name: weaponName, damage: weaponDamage }]);
-    fsm.next();
+    characterService.send('NEXT', {
+      weapons: [{ name: weaponName, damage: weaponDamage }],
+    });
   }
 
   const faction = scanf.question('Character Faction > ');
-  fsm.setFaction(faction);
-  fsm.next();
+  const final = characterService.send('NEXT', { faction });
 
-  if (fsm.is(States.FinalState)) return fsm;
-  return null;
+  return final;
 }
 
 async function begin() {
@@ -47,9 +51,9 @@ async function begin() {
   let create = 'y';
   while (create === 'y') {
     try {
+      // eslint-disable-next-line no-await-in-loop
       const c = await characterSheet();
-      characters.push((c || {}).json() || null);
-      histories.push((c || {}).history || null);
+      characters.push((c || {}).context || null);
     } catch (e) {
       console.log('error', e);
       process.exit(1);

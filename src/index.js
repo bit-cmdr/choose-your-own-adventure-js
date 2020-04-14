@@ -1,15 +1,6 @@
 /* eslint-disable no-console */
 const { Machine, assign, interpret } = require('xstate');
 
-async function damageClass(dmgType) {
-  let cls = 'melee';
-  if (dmgType.toLowerCase() === 'magic') cls = 'ranged';
-  if (dmgType.toLowerCase() === 'mixed') cls = 'ranged_melee';
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(cls), 6000);
-  });
-}
-
 const characterMachine = Machine(
   {
     id: 'characterSheet',
@@ -124,7 +115,15 @@ const characterMachine = Machine(
       setFaction: assign((ctx, event) => ({ ...ctx, faction: event.faction })),
     },
     services: {
-      damageClass: (_, event) => damageClass(event.dmgType),
+      damageClass: (_, event) => {
+        const { dmgType } = event;
+        let cls = 'melee';
+        if (dmgType.toLowerCase() === 'magic') cls = 'ranged';
+        if (dmgType.toLowerCase() === 'mixed') cls = 'ranged_melee';
+        return new Promise((resolve) => {
+          setTimeout(() => resolve(cls), 6000);
+        });
+      },
     },
   },
 );

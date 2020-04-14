@@ -19,6 +19,7 @@ async function characterSheet() {
     'Character Damage Type (melee, magic, mixed) > ',
   );
   const res = characterService.send('NEXT', { dmgType });
+
   const dt = await new Promise((resolve) =>
     res.children.fetchDamageType.subscribe((v) => resolve(v)),
   );
